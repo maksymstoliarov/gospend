@@ -3,6 +3,8 @@ package expense
 import (
 	"fmt"
 	"log"
+	"os"
+	"text/tabwriter"
 	"time"
 )
 
@@ -50,7 +52,13 @@ func (s *Service) List(amount float64, category string, note string, month strin
 	if len(expenses) == 0 {
 		fmt.Println("no expenses found")
 	} else {
-		fmt.Println(expenses)
+		w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
+		fmt.Fprintln(w, "ID\tDATE\tCATEGORY\tAMOUNT\tNOTE\t")
+		for _, e := range expenses {
+			fmt.Fprintf(w, "%d\t%s\t%s\t%6.2f\t%s\t\n", e.ID, e.CreatedAt.Format("2006-01-02"), e.Category, e.Amount, e.Note)
+		}
+		fmt.Println("")
+		w.Flush()
 	}
 }
 
