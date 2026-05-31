@@ -89,12 +89,9 @@ func (s *Storage) Add(newExpense Expense) {
 	expenses := s.unmarshalExpenses()
 	expenses = append(expenses, newExpense)
 
-	var err error
-	s.content, err = json.Marshal(expenses)
-	if err != nil {
-		log.Fatal("error saving added expense. " + err.Error())
-	}
-	if err = os.WriteFile(s.path, s.content, os.ModePerm); err != nil {
+	s.marshalExpenses(expenses)
+
+	if err := os.WriteFile(s.path, s.content, os.ModePerm); err != nil {
 		log.Fatal("error writing added expense into file. " + err.Error())
 	}
 
@@ -109,12 +106,9 @@ func (s *Storage) Delete(id int) error {
 		}
 	}
 
-	var err error
-	s.content, err = json.Marshal(expenses)
-	if err != nil {
-		log.Fatal("error saving deleted expense. " + err.Error())
-	}
-	if err = os.WriteFile(s.path, s.content, os.ModePerm); err != nil {
+	s.marshalExpenses(expenses)
+
+	if err := os.WriteFile(s.path, s.content, os.ModePerm); err != nil {
 		log.Fatal("error writing deleted expense into file. " + err.Error())
 	}
 
@@ -134,4 +128,12 @@ func (s *Storage) unmarshalExpenses() []Expense {
 		log.Fatal("error getting all expenses. " + err.Error())
 	}
 	return result
+}
+
+func (s *Storage) marshalExpenses(expenses []Expense) {
+	var err error
+	s.content, err = json.Marshal(expenses) //json.MarshalIndent(expenses, "", "    ")
+	if err != nil {
+		log.Fatal("error saving added expense. " + err.Error())
+	}
 }

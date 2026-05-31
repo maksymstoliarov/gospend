@@ -13,6 +13,22 @@ import (
 func main() {
 	fmt.Println("Hello gospend")
 
+	// trick to parse args after comand
+	originalArgs := os.Args
+	os.Args = originalArgs[1:]
+
+	if len(os.Args) == 0 {
+		log.Fatal("no arguments provided")
+	}
+
+	flagAmount := flag.Float64("amount", 0, "expense amount")
+	flagCategory := flag.String("category", "", "expense category")
+	flagNote := flag.String("note", "", "expense note")
+	flag.Parse()
+
+	// rollback args to original value
+	os.Args = originalArgs
+
 	// init storage
 	// TODO: handle ~ somehow
 	storage := expense.NewStorage("/home/max/.gospend/expenses.json")
@@ -23,30 +39,14 @@ func main() {
 	// init params handler (read, parse, validate all parameters)
 	// parse all params
 	// switch available operations
-	argsWithoutProg := os.Args[1:]
-	if len(argsWithoutProg) == 0 {
-		log.Fatal("no comand provided")
-	}
 
-	command := argsWithoutProg[0]
+	command := os.Args[1]
 	switch command {
 	case "list":
-		service.List()
+		service.List(*flagAmount, *flagCategory, *flagNote)
 	case "add":
 		// parse other arguments and validate
 		validationErrors := make([]string, 0)
-
-		// trick to parse args after comand
-		originalArgs := os.Args
-		os.Args = originalArgs[1:]
-
-		flagAmount := flag.Float64("amount", 0, "expense amount")
-		flagCategory := flag.String("category", "", "expense category")
-		flagNote := flag.String("note", "", "expense note")
-		flag.Parse()
-
-		// rollback args to original value
-		os.Args = originalArgs
 
 		if *flagAmount == 0.00 {
 			validationErrors = append(validationErrors, "amount cannot be 0")

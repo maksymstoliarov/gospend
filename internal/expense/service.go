@@ -15,9 +15,30 @@ func NewService(s *Storage) *Service {
 	}
 }
 
-func (s *Service) List() {
-	expenses := s.storage.GetAll()
-	fmt.Println(expenses)
+func (s *Service) List(amount float64, category string, note string) {
+	var expenses []Expense
+	if amount != 0 || category != "" || note != "" {
+		expenses = make([]Expense, 0)
+		for _, e := range s.storage.GetAll() {
+			ok := true
+
+			ok = ok && (amount != 0 && amount == e.Amount || amount == 0)
+			ok = ok && (category != "" && category == e.Category || category == "")
+			ok = ok && (note != "" && note == e.Note || note == "")
+
+			if ok {
+				expenses = append(expenses, e)
+			}
+		}
+	} else {
+		expenses = s.storage.GetAll()
+	}
+
+	if len(expenses) == 0 {
+		fmt.Println("no expenses found")
+	} else {
+		fmt.Println(expenses)
+	}
 }
 
 func (s *Service) Add(amount float64, category string, note string) {
