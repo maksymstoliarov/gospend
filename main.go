@@ -24,6 +24,7 @@ func main() {
 	flagAmount := flag.Float64("amount", 0, "expense amount")
 	flagCategory := flag.String("category", "", "expense category")
 	flagNote := flag.String("note", "", "expense note")
+	flagMonth := flag.String("month", "", "filter by Y-m (example: 2026-05)")
 	flag.Parse()
 
 	// rollback args to original value
@@ -43,7 +44,7 @@ func main() {
 	command := os.Args[1]
 	switch command {
 	case "list":
-		service.List(*flagAmount, *flagCategory, *flagNote)
+		service.List(*flagAmount, *flagCategory, *flagNote, *flagMonth)
 	case "add":
 		// parse other arguments and validate
 		validationErrors := make([]string, 0)
@@ -66,11 +67,9 @@ func main() {
 	case "clear":
 		// TODO: add confirm
 		service.Clear()
+	case "total":
+		service.Total(*flagMonth)
 	default:
 		log.Fatalf("unknown command: %s", command)
 	}
-
-	// init service component, based on parameter and pass all parameters into it
-
-	// save result into json file
 }

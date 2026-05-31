@@ -2,8 +2,11 @@ package expense
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
+
+var monthFilterFormat = "2006-01"
 
 type Service struct {
 	storage *Storage
@@ -15,9 +18,18 @@ func NewService(s *Storage) *Service {
 	}
 }
 
-func (s *Service) List(amount float64, category string, note string) {
+func (s *Service) List(amount float64, category string, note string, month string) {
 	var expenses []Expense
-	if amount != 0 || category != "" || note != "" {
+	if amount != 0 || category != "" || note != "" || month != "" {
+		var monthTime *time.Time
+		if month != "" {
+			var err error
+			monthTime, err = s.parseMonthFilter(month)
+			if err != nil {
+				log.Fatal("error getting list of expenses. " + err.Error())
+			}
+		}
+
 		expenses = make([]Expense, 0)
 		for _, e := range s.storage.GetAll() {
 			ok := true
@@ -25,6 +37,7 @@ func (s *Service) List(amount float64, category string, note string) {
 			ok = ok && (amount != 0 && amount == e.Amount || amount == 0)
 			ok = ok && (category != "" && category == e.Category || category == "")
 			ok = ok && (note != "" && note == e.Note || note == "")
+			ok = ok && (month != "" && monthTime != nil && monthTime.Format(monthFilterFormat) == e.CreatedAt.Format(monthFilterFormat) || month == "")
 
 			if ok {
 				expenses = append(expenses, e)
@@ -39,6 +52,31 @@ func (s *Service) List(amount float64, category string, note string) {
 	} else {
 		fmt.Println(expenses)
 	}
+}
+
+func (s *Service) Total(month string) {
+	var expenses []Expense
+	if month != "" {
+		var monthTime *time.Time
+		if month != "" {
+			var err error
+			monthTime, err = s.parseMonthFilter(month)
+			if err != nil {
+				log.Fatal("error getting total of expenses. " + err.Error())
+			}
+		}
+
+		expenses = make([]Expense, 0)
+		for _, e := range s.storage.GetAll() {
+			if monthTime != nil && e.CreatedAt.Format(monthFilterFormat) == monthTime.Format(monthFilterFormat) {
+				expenses = append(expenses, e)
+			}
+		}
+	} else {
+		expenses = s.storage.GetAll()
+	}
+
+	fmt.Println("Total:", len(expenses))
 }
 
 func (s *Service) Add(amount float64, category string, note string) {
@@ -57,4 +95,17 @@ func (s *Service) Add(amount float64, category string, note string) {
 func (s *Service) Clear() {
 	s.storage.DeleteAll()
 	fmt.Println("expenses are cleared")
+}
+
+func (s *Service) parseMonthFilter(month string) (*time.Time, error) {
+	if month == "" {
+		return nil, fmt.Errorf("month is empty")
+	}
+
+	monthTime, err := time.Parse(monthFilterFormat, month)
+	if err != nil {
+		return nil, fmt.Errorf("wrong format of month filter")
+	}
+
+	return &monthTime, err
 }
