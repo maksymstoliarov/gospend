@@ -3,7 +3,9 @@ package expense
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 )
 
 type Storage struct {
@@ -18,30 +20,33 @@ func NewStorage(p string) *Storage {
 	}
 	var err error
 	// check if file exists
-	if s.file, err = os.Open(p); err == nil {
+	if s.content, err = os.ReadFile(p); err == nil {
 		// file exists, check for corruption
-
-		// read
-		_, err := s.file.Read(s.content)
-		if err != nil {
-			panic("error reading storage file. " + err.Error())
-		}
 
 		// validate
 		if valid := json.Valid(s.content); !valid {
-			panic("error reading storage file. file does not contain valid JSON")
+			log.Fatal("error reading storage file. file does not contain valid JSON")
 		}
 	} else if os.IsNotExist(err) {
 		// file does not exist, create empty file
-		s.file, err = os.Create(p)
-		if err != nil {
-			panic("error creating storage file. " + err.Error())
+		// ensure dir
+		dirName := filepath.Dir(p)
+		if _, err = os.Stat(dirName); err != nil {
+			// dir does not exist
+			if err = os.MkdirAll(dirName, os.ModePerm); err != nil {
+				log.Fatal("error creating storage file dir. " + err.Error())
+			}
+		}
+
+		// write empty array to the file
+		if err = os.WriteFile(p, []byte("[]"), os.ModePerm); err != nil {
+			log.Fatal("error writing initial value to file. " + err.Error())
 		}
 	} else if os.IsPermission(err) {
-		// file has corrupted permission, panic
-		panic("error accessing storage file. permission denied")
+		// file has corrupted permission, log.Fatal
+		log.Fatal("error accessing storage file. permission denied")
 	} else {
-		panic("error opening storage file. " + err.Error())
+		log.Fatal("error reading storage file. " + err.Error())
 	}
 
 	return s
@@ -63,6 +68,22 @@ func (s *Storage) GetOne(id int) (Expense, error) {
 
 }
 
+func (s *Storage) GetOneWithMaxID() Expense {
+	// unmarshal json content, loop and find highest id
+	var maxID, maxI int
+	expenses := s.unmarshalExpenses()
+	for i, e := range expenses {
+		if e.ID > maxID {
+			maxID = e.ID
+			maxI = i
+		}
+	}
+	if maxID == 0 {
+		return Expense{}
+	}
+	return expenses[maxI]
+}
+
 func (s *Storage) Add(newExpense Expense) {
 	// unmarshal json content, append one json object
 	expenses := s.unmarshalExpenses()
@@ -71,10 +92,10 @@ func (s *Storage) Add(newExpense Expense) {
 	var err error
 	s.content, err = json.Marshal(expenses)
 	if err != nil {
-		panic("error saving added expense. " + err.Error())
+		log.Fatal("error saving added expense. " + err.Error())
 	}
-	if _, err = s.file.Write(s.content); err != nil {
-		panic("error writing added expense into file. " + err.Error())
+	if err = os.WriteFile(s.path, s.content, os.ModePerm); err != nil {
+		log.Fatal("error writing added expense into file. " + err.Error())
 	}
 
 }
@@ -91,19 +112,26 @@ func (s *Storage) Delete(id int) error {
 	var err error
 	s.content, err = json.Marshal(expenses)
 	if err != nil {
-		panic("error saving deleted expense. " + err.Error())
+		log.Fatal("error saving deleted expense. " + err.Error())
 	}
-	if _, err = s.file.Write(s.content); err != nil {
-		panic("error writing deleted expense into file. " + err.Error())
+	if err = os.WriteFile(s.path, s.content, os.ModePerm); err != nil {
+		log.Fatal("error writing deleted expense into file. " + err.Error())
 	}
 
 	return nil
 }
 
+func (s *Storage) DeleteAll() {
+	s.content = []byte("[]")
+	if err := os.WriteFile(s.path, s.content, os.ModePerm); err != nil {
+		log.Fatal("error writing deleted expenses into file. " + err.Error())
+	}
+}
+
 func (s *Storage) unmarshalExpenses() []Expense {
-	var result []Expense
-	if err := json.Unmarshal(s.content, result); err != nil {
-		panic("error getting all expenses. " + err.Error())
+	result := make([]Expense, 0)
+	if err := json.Unmarshal(s.content, &result); err != nil {
+		log.Fatal("error getting all expenses. " + err.Error())
 	}
 	return result
 }
