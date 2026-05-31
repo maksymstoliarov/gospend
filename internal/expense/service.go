@@ -92,6 +92,18 @@ func (s *Service) Add(amount float64, category string, note string) {
 	fmt.Println("new expense is added")
 }
 
+func (s *Service) Delete(id int) {
+	if _, err := s.storage.GetOne(id); err != nil {
+		log.Fatalf("error deleting expense %d. %s", id, err.Error())
+	}
+
+	if err := s.storage.Delete(id); err != nil {
+		log.Fatalf("error deleting expense %d. %s", id, err.Error())
+	}
+
+	fmt.Println("expense deleted")
+}
+
 func (s *Service) Clear() {
 	s.storage.DeleteAll()
 	fmt.Println("expenses are cleared")

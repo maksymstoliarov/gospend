@@ -25,6 +25,7 @@ func main() {
 	flagCategory := flag.String("category", "", "expense category")
 	flagNote := flag.String("note", "", "expense note")
 	flagMonth := flag.String("month", "", "filter by Y-m (example: 2026-05)")
+	flagID := flag.Int("id", 0, "expense id")
 	flag.Parse()
 
 	// rollback args to original value
@@ -69,6 +70,11 @@ func main() {
 		service.Clear()
 	case "total":
 		service.Total(*flagMonth)
+	case "delete":
+		if *flagID == 0 {
+			log.Fatal("cannot delete expense. id cannot be empty")
+		}
+		service.Delete(*flagID)
 	default:
 		log.Fatalf("unknown command: %s", command)
 	}
